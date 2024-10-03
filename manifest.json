@@ -1,2 +1,20 @@
 [
+    {
+        "guid": "4e47221f-3a04-42ab-90c6-d458d6509b30",
+        "name": "MediaTracker",
+        "description": "MediaTracker scrobbler. EXPERIMENTAL CHANGES!!!",
+        "overview": "MediaTracker scrobbler",
+        "owner": "fluffy-godzilla",
+        "category": "General",
+        "versions": [
+            {
+                "version": "2.0.0.3",
+                "changelog": "- \"Added a lock that protects ShouldSkipAction and CanMarkAsSeen\"",
+                "targetAbi": "10.9.1.0",
+                "sourceUrl": "https://github.com/fluffy-godzilla/jellyfin-plugin-mediatracker/releases/download/v2.0.0.3/mediatracker_2.0.0.3.zip",
+                "checksum": "92fac87c9de2e35a7257236b4eb9657d",
+                "timestamp": "2024-10-03T01:26:58Z"
+            }
+        ]
+    }
 ]
