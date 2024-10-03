@@ -26,7 +26,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public override string Name => "MediaTracker";
 
     /// <inheritdoc />
-    public override Guid Id => Guid.Parse("c4772eae-799e-490d-abff-4de21f99c95e");
+    public override Guid Id => Guid.Parse("4e47221f-3a04-42ab-90c6-d458d6509b30");
 
     /// <summary>
     /// Gets the current plugin instance.

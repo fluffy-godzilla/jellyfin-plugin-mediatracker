@@ -62,36 +62,42 @@ public class PreviousActions
 
     public bool ShouldSkipAction(User user, Video video, float progress, string action)
     {
-        var id = Tuple.Create(user.Id, video.Id);
-
-        if (progressDictionary.TryGetValue(id, out PreviousAction? value))
+        lock(dictionaryLock)
         {
-            if (value.ShouldSkip(action, progress))
-            {
-                return true;
-            }
-        }
-        
-        progressDictionary[id] = new PreviousAction(action, progress);
+            var id = Tuple.Create(user.Id, video.Id);
 
+            if (progressDictionary.TryGetValue(id, out PreviousAction? value))
+            {
+                if (value.ShouldSkip(action, progress))
+                {
+                    return true;
+                }
+            }
+
+            progressDictionary[id] = new PreviousAction(action, progress);
+        }
         return false;
     }
 
     public bool CanMarkAsSeen(User user, Video video)
     {
-        var id = Tuple.Create(user.Id, video.Id);
-
-        if (markedAsSeenHistory.TryGetValue(id, out DateTime value))
+        lock (dictionaryLock)
         {
+            var id = Tuple.Create(user.Id, video.Id);
+
+            if (markedAsSeenHistory.TryGetValue(id, out DateTime value))
+            {
+                markedAsSeenHistory[id] = DateTime.Now;
+
+                return (DateTime.Now.Subtract(value).TotalHours >= 12);
+            }
+
             markedAsSeenHistory[id] = DateTime.Now;
-
-            return (DateTime.Now.Subtract(value).TotalHours >= 12);
         }
-
-        markedAsSeenHistory[id] = DateTime.Now;
-
         return true;
     }
+
+    private readonly object dictionaryLock = new();
 
     private Dictionary<Tuple<System.Guid, System.Guid>, DateTime> markedAsSeenHistory;
     private Dictionary<Tuple<System.Guid, System.Guid>, PreviousAction> progressDictionary;

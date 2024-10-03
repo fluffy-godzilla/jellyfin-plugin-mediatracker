@@ -1,5 +1,5 @@
 const MediaTrackerConfigPage = {
-    pluginUniqueId: 'c4772eae-799e-490d-abff-4de21f99c95e',
+    pluginUniqueId: '4e47221f-3a04-42ab-90c6-d458d6509b30',
 };
 
 export default function (view) {
