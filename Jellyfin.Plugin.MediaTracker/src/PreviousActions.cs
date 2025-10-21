@@ -1,5 +1,5 @@
 
-using Jellyfin.Data.Entities;
+using Jellyfin.Database.Implementations.Entities;
 using MediaBrowser.Controller.Entities;
 
 public class PreviousAction

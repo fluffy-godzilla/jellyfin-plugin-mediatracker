@@ -13,7 +13,7 @@ using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using Jellyfin.Data.Entities;
+using Jellyfin.Database.Implementations.Entities;
 
 /// <summary>
 /// Class ServerEntryPoint
