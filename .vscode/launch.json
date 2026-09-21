@@ -7,7 +7,7 @@
              "name": "Launch",
              "request": "launch",
              "preLaunchTask": "build-and-copy",
-             "program": "${config:jellyfinDir}/bin/Debug/net9.0/jellyfin.dll",
+             "program": "${config:jellyfinDir}/bin/Debug/net10.0/jellyfin.dll",
              "args": [
                 //"--nowebclient"
                 "--webdir",
@@ -15,6 +15,7 @@
              ],
              "cwd": "${config:jellyfinDir}",
              "justMyCode": false, // You can change to false if you wanna debug 3rd-party code
+             "requireExactSource": false,
              "logging": {
                 "moduleLoad": false
              },

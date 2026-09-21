@@ -1,4 +1,5 @@
-﻿using Jellyfin.Plugin.MediaTracker.Configuration;
+﻿using System.Globalization;
+using Jellyfin.Plugin.MediaTracker.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
@@ -28,6 +29,9 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <inheritdoc />
     public override Guid Id => Guid.Parse("4e47221f-3a04-42ab-90c6-d458d6509b30");
 
+    /// <inheritdoc />
+    public override string Description => "MediaTracker scrobbler and importer";
+
     /// <summary>
     /// Gets the current plugin instance.
     /// </summary>
@@ -37,18 +41,18 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()
     {
-        return new[]
-        {
+        return
+        [
             new PluginPageInfo
             {
-                Name = "mediatracker",
-                EmbeddedResourcePath = GetType().Namespace + ".Configuration.config.html"
+                Name = Name,
+                EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.config.html", GetType().Namespace)
             },
             new PluginPageInfo
             {
                 Name = "mediatrackerjs",
-                EmbeddedResourcePath = GetType().Namespace + ".Configuration.config.js"
+                EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.config.js", GetType().Namespace)
             }
-        };
+        ];
     }
 }
