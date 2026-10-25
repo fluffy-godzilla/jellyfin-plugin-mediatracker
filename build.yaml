@@ -11,4 +11,4 @@ owner: "fluffy-godzilla"
 artifacts:
   - "Jellyfin.Plugin.MediaTracker.dll"
 changelog: |-
-  - "Added 'seen' status importing for movies and shows. IN PROGRESS..."
+  - "Added importing of 'seen' status for movies and shows."
