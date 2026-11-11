@@ -11,5 +11,6 @@
      // ${env:LOCALAPPDATA}/jellyfin
      "jellyfinDataDir" : "/home/alex/.local/share/jellyfin",
      // The name of the plugin
-     "pluginName" : "Jellyfin.Plugin.MediaTracker",
+    "pluginName": "Jellyfin.Plugin.MediaTracker",
+    "editor.formatOnSave": true,
  }

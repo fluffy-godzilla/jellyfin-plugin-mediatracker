@@ -5,7 +5,7 @@
 
 ## Requirements
 
-Minimum MediaTracker version: `0.1.0`
+Minimum fluffy-godzilla/mediatracker version: `0.2.14`
 
 ## Features
 - per user configuration

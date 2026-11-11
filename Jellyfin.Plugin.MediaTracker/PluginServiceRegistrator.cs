@@ -9,9 +9,9 @@ namespace Jellyfin.Plugin.MediaTracker;
 /// </summary>
 public class PluginServiceRegistrator : IPluginServiceRegistrator
 {
-    /// <inheritdoc />
-    public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
-    {
-        serviceCollection.AddHostedService<ServerEntryPoint>();
-    }
+  /// <inheritdoc />
+  public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
+  {
+    serviceCollection.AddHostedService<ServerEntryPoint>();
+  }
 }

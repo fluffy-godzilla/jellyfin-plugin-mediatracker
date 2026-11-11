@@ -1,18 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <RootNamespace>Jellyfin.Plugin.MediaTracker</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>    
+    <Nullable>disable</Nullable>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Web\config.html" />
+    <None Remove="Web\config.js" />
+    <EmbeddedResource Include="Web\config.html" />
+    <EmbeddedResource Include="Web\config.js" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Jellyfin.Data" Version="12.*-*" />
     <PackageReference Include="Jellyfin.Controller" Version="12.*-*" />
   </ItemGroup>
   <ItemGroup>
-    <None Remove="Configuration\config.html" />
-    <None Remove="Configuration\config.js" />
-    <EmbeddedResource Include="Configuration\config.html" />
-    <EmbeddedResource Include="Configuration\config.js" />
-  </ItemGroup>
+    <PackageReference Include="SerilogAnalyzer" Version="0.15.0" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" />
+    <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
+  </ItemGroup>  
 </Project>

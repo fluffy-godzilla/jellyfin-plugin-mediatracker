@@ -11,4 +11,4 @@ owner: "fluffy-godzilla"
 artifacts:
   - "Jellyfin.Plugin.MediaTracker.dll"
 changelog: |-
-  - "Added importing of 'seen' status for movies and shows."
+  - "Refactored the scrobbler code, started adding support for importing scrobbles from MediaTracker."

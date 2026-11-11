@@ -2,7 +2,7 @@
     {
         "guid": "4e47221f-3a04-42ab-90c6-d458d6509b30",
         "name": "MediaTracker",
-        "description": "MediaTracker scrobbler. EXPERIMENTAL CHANGES!!!",
+        "description": "MediaTracker scrobbler and importer.",
         "overview": "MediaTracker scrobbler",
         "owner": "fluffy-godzilla",
         "category": "General",

@@ -1,11 +1,10 @@
-name: '🚀 Publish Plugin'
+name: "🚀 Publish Plugin"
 
 permissions: write-all
 
 on:
   release:
-    types:
-      - released
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -15,13 +14,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
         with:
-          ref: "fix_crash"
+          ref: ${{ github.event.release.target_commitish }}
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 9.0.x
-          
+          dotnet-version: 10.0.x
+
       - name: Setup jprm
         run: |
           pip install --user jprm
@@ -30,7 +30,7 @@ jobs:
         uses: oddstr13/jellyfin-plugin-repository-manager@4a2b165a3dc2cfc392db865a85f23c02e9f78c68 # v0.5.1
         id: jprm
         with:
-          dotnet-target: net9.0
+          dotnet-target: net10.0
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -42,27 +42,25 @@ jobs:
 
       - name: Upload to Release
         id: release
-        if: ${{ github.event_name == 'release' }}
-        uses: shogo82148/actions-upload-release-asset@b016af922a61601d647ff60226adadbe146b7651 # v1.6.4
+        uses: shogo82148/actions-upload-release-asset@v1
         with:
           upload_url: ${{ github.event.release.upload_url }}
           overwrite: true
           asset_path: ${{ steps.jprm.outputs.artifact }}
-          
+
       - name: Update manifest
         run: |
           jprm repo add --plugin-url ${{ steps.release.outputs.browser_download_url }} ./manifest.json ${{ steps.jprm.outputs.artifact }}
-      
+
       - name: Setup GPG keys for signed commits
         uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
-          
+
       - name: Commit manifest
         run: |
           git add ./manifest.json
           git commit -m "Update manifest.json"
-          git push --force
+          git push --force origin HEAD:${{ github.event.release.target_commitish }}

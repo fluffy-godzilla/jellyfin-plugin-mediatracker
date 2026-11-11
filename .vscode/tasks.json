@@ -7,7 +7,11 @@
             // jellyfin server's plugin directory
             "label": "build-and-copy",
             "dependsOrder": "sequence",
-            "dependsOn": ["build", "make-plugin-dir", "copy-dll"]
+            "dependsOn": [
+                "build",
+                "make-plugin-dir",
+                "copy-dll"
+            ]
         },
         {
             // Build the plugin
