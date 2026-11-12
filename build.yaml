@@ -1,7 +1,7 @@
 ---
 name: "MediaTracker"
 guid: "4e47221f-3a04-42ab-90c6-d458d6509b30"
-version: "2.1.0.2"
+version: "2.1.1.0"
 targetAbi: "12.1.0.0"
 framework: "net10.0"
 overview: "MediaTracker scrobbler"
@@ -11,4 +11,4 @@ owner: "fluffy-godzilla"
 artifacts:
   - "Jellyfin.Plugin.MediaTracker.dll"
 changelog: |-
-  - "Added support for importing tv show scrobbles and progress from MediaTracker server."
+  - "Public release."

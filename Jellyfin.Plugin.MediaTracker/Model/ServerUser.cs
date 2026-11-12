@@ -20,13 +20,10 @@ public class ServerUser
     SkipUnwatchedImportFromServer = true;
     SkipWatchedImportFromServer = false;
     SkipPlaybackProgressImportFromServer = false;
-    PostWatchedHistory = true;
-    PostUnwatchedHistory = false;
     PostSetWatched = true;
     PostSetUnwatched = false;
     ExtraLogging = false;
     Scrobble = true;
-    LastSyncFromServerAt = DateTime.MinValue;
   }
 
   /// <summary>
@@ -60,16 +57,6 @@ public class ServerUser
   public bool SkipWatchedImportFromServer { get; set; }
 
   /// <summary>
-  /// Gets or sets a value indicating whether the watch history should be posted or not.
-  /// </summary>
-  public bool PostWatchedHistory { get; set; }
-
-  /// <summary>
-  /// Gets or sets a value indicating whether the unwatch history should be posted or not.
-  /// </summary>
-  public bool PostUnwatchedHistory { get; set; }
-
-  /// <summary>
   /// Gets or sets a value indicating whether setting an item to watched should be posted or not.
   /// </summary>
   public bool PostSetWatched { get; set; }
@@ -88,10 +75,4 @@ public class ServerUser
   /// Gets or sets a value indicating whether scrobbling should take place or not.
   /// </summary>
   public bool Scrobble { get; set; }
-
-  /// <summary>
-  /// Gets or sets the date the last import from server started, used to detect
-  /// library items added since then. MinValue means never synced.
-  /// </summary>
-  public DateTime LastSyncFromServerAt { get; set; }
 }

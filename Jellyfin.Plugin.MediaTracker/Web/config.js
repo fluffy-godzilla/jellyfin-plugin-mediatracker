@@ -15,8 +15,6 @@ const MediaTrackerConfigPage = {
           SkipUnwatchedImportFromServer: true,
           SkipWatchedImportFromServer: false,
           SkipPlaybackProgressImportFromServer: false,
-          PostWatchedHistory: true,
-          PostUnwatchedHistory: false,
           PostSetWatched: true,
           PostSetUnwatched: false,
           ExtraLogging: false,
@@ -28,8 +26,6 @@ const MediaTrackerConfigPage = {
       page.querySelector('#chkSkipUnwatchedImportFromServer').checked = currentUserConfig.SkipUnwatchedImportFromServer;
       page.querySelector('#chkSkipWatchedImportFromServer').checked = currentUserConfig.SkipWatchedImportFromServer;
       page.querySelector('#chkSkipPlaybackProgressImportFromServer').checked = currentUserConfig.SkipPlaybackProgressImportFromServer;
-      page.querySelector('#chkPostWatchedHistory').checked = currentUserConfig.PostWatchedHistory;
-      page.querySelector('#chkPostUnwatchedHistory').checked = currentUserConfig.PostUnwatchedHistory;
       page.querySelector('#chkPostSetWatched').checked = currentUserConfig.PostSetWatched;
       page.querySelector('#chkPostSetUnwatched').checked = currentUserConfig.PostSetUnwatched;
       page.querySelector('#chkExtraLogging').checked = currentUserConfig.ExtraLogging;
@@ -65,8 +61,6 @@ function save(page) {
       currentUserConfig.SkipUnwatchedImportFromServer = page.querySelector('#chkSkipUnwatchedImportFromServer').checked;
       currentUserConfig.SkipWatchedImportFromServer = page.querySelector('#chkSkipWatchedImportFromServer').checked;
       currentUserConfig.SkipPlaybackProgressImportFromServer = page.querySelector('#chkSkipPlaybackProgressImportFromServer').checked;
-      currentUserConfig.PostWatchedHistory = page.querySelector('#chkPostWatchedHistory').checked;
-      currentUserConfig.PostUnwatchedHistory = page.querySelector('#chkPostUnwatchedHistory').checked;
       currentUserConfig.PostSetWatched = page.querySelector('#chkPostSetWatched').checked;
       currentUserConfig.PostSetUnwatched = page.querySelector('#chkPostSetUnwatched').checked;
       currentUserConfig.ExtraLogging = page.querySelector('#chkExtraLogging').checked;
