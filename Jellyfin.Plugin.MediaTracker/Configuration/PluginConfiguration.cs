@@ -1,55 +1,63 @@
+#pragma warning disable CA1819 // Properties should not return arrays
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Jellyfin.Plugin.MediaTracker.Model;
 using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.MediaTracker.Configuration;
-
-public class User
-{
-    public User()
-    {
-        id = "";
-        apiToken = "";
-    }
-
-    public string id { get; set; }
-    public string apiToken { get; set; }
-}
 
 /// <summary>
 /// Plugin configuration.
 /// </summary>
 public class PluginConfiguration : BasePluginConfiguration
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PluginConfiguration"/> class.
-    /// </summary>
-    public PluginConfiguration()
+  /// <summary>
+  /// Initializes a new instance of the <see cref="PluginConfiguration"/> class.
+  /// </summary>
+  public PluginConfiguration()
+  {
+    ServerUsers = [];
+  }
+
+  /// <summary>
+  /// Gets or sets the server users.
+  /// </summary>
+  public ServerUser[] ServerUsers { get; set; }
+
+  /// <summary>
+  /// Adds a user to the server users.
+  /// </summary>
+  /// <param name="userGuid">The user Guid.</param>
+  public void AddUser(Guid userGuid)
+  {
+    var users = ServerUsers.ToList();
+    var user = new ServerUser
     {
-        // set default options here
-        users = Array.Empty<User>();
-        mediaTrackerUrl = "http://localhost:7481";
-    }
+      LinkedMbUserId = userGuid
+    };
+    users.Add(user);
+    ServerUsers = [.. users];
+  }
 
-    /// <summary>
-    /// Gets or sets a API token.
-    /// </summary>
-    public User[] users { get; set; }
+  /// <summary>
+  /// Removes a user from the server users.
+  /// </summary>
+  /// <param name="userGuid">The user id.</param>
+  public void RemoveUser(Guid userGuid)
+  {
+    var users = ServerUsers.ToList();
+    users.RemoveAll(user => user.LinkedMbUserId == userGuid);
+    ServerUsers = [.. users];
+  }
 
-    /// <summary>
-    /// Gets or sets a MediaTracker URL.
-    /// </summary>
-    public string mediaTrackerUrl { get; set; }
-
-
-    public string? GetApiToken(Guid userId)
-    {
-        foreach (var user in this.users)
-        {
-            if (Guid.Parse(user.id) == userId)
-            {
-                return user.apiToken;
-            }
-        }
-
-        return null;
-    }
+  /// <summary>
+  /// Gets a list of all server users.
+  /// </summary>
+  /// <returns>IReadonlyList{ServerUser} with all server users.</returns>
+  public IReadOnlyList<ServerUser> GetAllServerUsers()
+  {
+    return [.. ServerUsers];
+  }
 }

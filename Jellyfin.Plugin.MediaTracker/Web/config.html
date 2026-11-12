@@ -1,0 +1,125 @@
+<div id="mediaTrackerConfigPage" data-role="page"
+  class="page type-interior pluginConfigurationPage mediaTrackerConfigPage" data-controller="__plugin/configjs">
+  <div data-role="content">
+    <div class="content-primary">
+
+      <h1>MediaTracker</h1>
+
+      <form id="mediaTrackerConfigurationForm">
+
+        <div class="selectContainer">
+          <select is="emby-select" id="selectUser" name="selectUser" label="Configure MediaTracker for:"></select>
+        </div>
+        <div>
+          <p class="fieldDescription">Configure the MediaTracker server connection. Before you can do that, you need to
+            go to MediaTracker server Settings and Add a new Application Token.</p>
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="apiServerUrl">Server URL</label>
+            <input id="apiServerUrl" name="apiServerUrl" type="text" is="emby-input" />
+            <div class="fieldDescription">
+              MediaTracker URL, for example http://localhost:7481
+            </div>
+          </div>
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="apiToken">API token</label>
+            <input id="apiToken" name="apiToken" type="text" is="emby-input" />
+            <div class="fieldDescription">MediaTracker API Token</div>
+          </div>
+        </div>
+
+        <h2 style="margin-top: 2em;">Import from MediaTracker server to Jellyfin</h2>
+        <p class="fieldDescription">Control how watch history from MediaTracker server is brought into Jellyfin.</p>
+
+        <div class="checkboxContainer checkboxContainer-withDescription">
+          <label>
+            <input is="emby-checkbox" type="checkbox" id="chkSkipWatchedImportFromServer"
+              name="chkSkipWatchedImportFromServer" />
+            <span>Keep Jellyfin's 'watched' status (don't import from MediaTracker server)</span>
+          </label>
+          <div class="fieldDescription checkboxFieldDescription">
+            Check this to prevent Jellyfin from marking an item as 'watched', even if it is marked watched on
+            MediaTracker server.
+            This protects your local watch history.
+          </div>
+        </div>
+        <div class="checkboxContainer checkboxContainer-withDescription">
+          <label>
+            <input is="emby-checkbox" type="checkbox" id="chkSkipUnwatchedImportFromServer"
+              name="chkSkipUnwatchedImportFromServer" />
+            <span>Keep Jellyfin's 'unwatched' status (don't import from MediaTracker server)</span>
+          </label>
+          <div class="fieldDescription checkboxFieldDescription">
+            Check this to prevent Jellyfin from marking an item as 'unwatched', even if it is marked unwatched on
+            MediaTracker server.
+          </div>
+        </div>
+        <div class="checkboxContainer checkboxContainer-withDescription">
+          <label>
+            <input is="emby-checkbox" type="checkbox" id="chkSkipPlaybackProgressImportFromServer"
+              name="chkSkipPlaybackProgressImportFromServer" />
+            <span>Don't import playback progress</span>
+          </label>
+          <div class="fieldDescription checkboxFieldDescription">
+            Check this to prevent Jellyfin from syncing in-progress playback status from MediaTracker server (e.g., "50%
+            watched").
+          </div>
+        </div>
+
+        <br />
+
+        <h2 style="margin-top: 2em;">Sync from Jellyfin to MediaTracker server</h2>
+        <p class="fieldDescription">Control how your Jellyfin viewing activity is sent to your MediaTracker server
+          account.</p>
+
+        <h3 class="checkboxListLabel">Instant Sync (As it happens)</h3>
+        <div class="checkboxContainer checkboxContainer-withDescription">
+          <label>
+            <input is="emby-checkbox" type="checkbox" id="chkScrobble" name="chkScrobble" />
+            <span>Enable Scrobbling (Live Watching Status)</span>
+          </label>
+          <div class="fieldDescription checkboxFieldDescription">
+            Tells MediaTracker server what you're watching in real-time. Recommended to be enabled for most users.
+          </div>
+        </div>
+        <div class="checkboxContainer checkboxContainer-withDescription">
+          <label>
+            <input is="emby-checkbox" type="checkbox" id="chkPostSetWatched" name="chkPostSetWatched" />
+            <span>Instantly mark as 'watched' on MediaTracker server</span>
+          </label>
+          <div class="fieldDescription checkboxFieldDescription">
+            When you watch something on Jellyfin, immediately update it on MediaTracker server.
+          </div>
+        </div>
+        <div class="checkboxContainer checkboxContainer-withDescription">
+          <label>
+            <input is="emby-checkbox" type="checkbox" id="chkPostSetUnwatched" name="chkPostSetUnwatched" />
+            <span>Instantly mark as 'unwatched' on MediaTracker server</span>
+          </label>
+          <div class="fieldDescription checkboxFieldDescription">
+            When you manually mark something as unwatched in Jellyfin, immediately update it on MediaTracker server.
+          </div>
+        </div>
+
+        <br />
+
+        <h2 style="margin-top: 2em;">Advanced</h2>
+
+        <div class="checkboxContainer checkboxContainer-withDescription">
+          <label>
+            <input is="emby-checkbox" type="checkbox" id="chkExtraLogging" name="chkExtraLogging" />
+            <span>Enable debug logging</span>
+          </label>
+          <div class="fieldDescription checkboxFieldDescription">
+            For troubleshooting only. This will write detailed logs about all communication with MediaTracker server.
+          </div>
+        </div>
+
+        <div>
+          <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+            <span>Save</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
