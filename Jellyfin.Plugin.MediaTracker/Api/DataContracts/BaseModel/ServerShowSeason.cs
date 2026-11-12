@@ -1,33 +1,28 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.MediaTracker.Api.DataContracts.BaseModel;
 
 /// <summary>
-/// The server episode class.
+/// The server show season class.
 /// </summary>
-public class ServerEpisode
+public class ServerShowSeason : ServerTVId
 {
   /// <summary>
   /// Gets or sets the season number.
   /// </summary>
-  [JsonPropertyName("season")]
+  [JsonPropertyName("seasonNumber")]
   public int Season { get; set; }
 
   /// <summary>
-  /// Gets or sets the episode number.
-  /// </summary>
-  [JsonPropertyName("number")]
-  public int Number { get; set; }
-
-  /// <summary>
-  /// Gets or sets the episode title.
+  /// Gets or sets the season title.
   /// </summary>
   [JsonPropertyName("title")]
   public string Title { get; set; }
 
   /// <summary>
-  /// Gets or sets the episode ids.
+  /// Gets or sets the episodes.
   /// </summary>
-  [JsonPropertyName("ids")]
-  public ServerEpisodeId Ids { get; set; }
+  [JsonPropertyName("episodes")]
+  public IReadOnlyList<ServerShowEpisode> Episodes { get; set; }
 }

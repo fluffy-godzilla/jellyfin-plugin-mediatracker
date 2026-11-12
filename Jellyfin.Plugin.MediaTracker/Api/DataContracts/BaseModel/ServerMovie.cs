@@ -5,7 +5,7 @@ namespace Jellyfin.Plugin.MediaTracker.Api.DataContracts.BaseModel;
 /// <summary>
 /// The server movie class.
 /// </summary>
-public class ServerMovie : ServerMovieId
+public class ServerMovie : ServerIMDBandTMDBId
 {
   /// <summary>
   /// Gets or sets the movie title.

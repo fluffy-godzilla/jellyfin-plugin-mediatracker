@@ -11,5 +11,5 @@ public class ServerId
   /// Gets or sets the server item id.
   /// </summary>
   [JsonPropertyName("id")]
-  public int Server { get; set; }
+  public int Id { get; set; }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.MediaTracker.Api.DataContracts.BaseModel;
@@ -5,7 +6,7 @@ namespace Jellyfin.Plugin.MediaTracker.Api.DataContracts.BaseModel;
 /// <summary>
 /// The server show class.
 /// </summary>
-public class ServerShow
+public class ServerShow : ServerTVId
 {
   /// <summary>
   /// Gets or sets the show title.
@@ -14,14 +15,8 @@ public class ServerShow
   public string Title { get; set; }
 
   /// <summary>
-  /// Gets or sets the show year.
+  /// Gets or sets the seasons.
   /// </summary>
-  [JsonPropertyName("year")]
-  public int? Year { get; set; }
-
-  /// <summary>
-  /// Gets or sets the show ids.
-  /// </summary>
-  [JsonPropertyName("ids")]
-  public ServerShowId Ids { get; set; }
+  [JsonPropertyName("seasons")]
+  public IReadOnlyList<ServerShowSeason> Seasons { get; set; }
 }

@@ -11,10 +11,10 @@ using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.MediaTracker.Api;
+using Jellyfin.Plugin.MediaTracker.Api.DataContracts.BaseModel;
 using Jellyfin.Plugin.MediaTracker.Api.DataContracts.Users.Playback;
 using Jellyfin.Plugin.MediaTracker.Api.DataContracts.Users.Watched;
 using Jellyfin.Plugin.MediaTracker.Helpers;
-using Jellyfin.Plugin.MediaTracker.Model;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -130,10 +130,7 @@ public class SyncFromServerTask : IScheduledTask
 
     List<ServerMovieWatched> serverWatchedMovies = new List<ServerMovieWatched>();
     List<ServerMoviePaused> serverPausedMovies = new List<ServerMoviePaused>();
-
-    // List<ServerShowWatched> serverWatchedShows = new List<ServerShowWatched>();
-    // List<ServerWatchedEpisode> serverWatchedEpisodes = new List<ServerWatchedEpisode>();
-    // List<ServerEpisodePaused> serverPausedEpisodes = new List<ServerEpisodePaused>();
+    List<ServerShow> serverWatchedShows = new List<ServerShow>();
 
     try
     {
@@ -150,13 +147,6 @@ public class SyncFromServerTask : IScheduledTask
         {
           serverWatchedMovies.AddRange(await _serverApi.SendGetAllWatchedMoviesRequest(serverUser, cancellationToken).ConfigureAwait(false));
         }
-
-        // if (episodeSyncNeeded)
-        // {
-        //   // TODO: return both watched shows and episodes
-        //   serverWatchedShows.AddRange(await _serverApi.SendGetWatchedShowsRequest(serverUser, cancellationToken).ConfigureAwait(false));
-        //   serverWatchedEpisodes.AddRange(await _serverApi.SendGetWatchedEpisodesRequest(serverUser, cancellationToken).ConfigureAwait(false));
-        // }
       }
 
       if (!serverUser.SkipPlaybackProgressImportFromServer)
@@ -165,12 +155,18 @@ public class SyncFromServerTask : IScheduledTask
         {
           serverPausedMovies.AddRange(await _serverApi.SendGetAllPausedMoviesRequest(serverUser, cancellationToken).ConfigureAwait(false));
         }
+      }
 
-        // if (episodeSyncNeeded)
-        // {
-        //   // TODO:
-        //   serverPausedEpisodes.AddRange(await _serverApi.SendGetPausedEpisodesRequest(serverUser, cancellationToken).ConfigureAwait(false));
-        // }
+      if (!(serverUser.SkipUnwatchedImportFromServer && serverUser.SkipWatchedImportFromServer && serverUser.SkipPlaybackProgressImportFromServer))
+      {
+        if (episodeSyncNeeded)
+        {
+          var shows = await _serverApi.SendGetWatchedShowsRequest(serverUser, cancellationToken).ConfigureAwait(false);
+          foreach (var s in shows)
+          {
+            serverWatchedShows.Add(await _serverApi.SendGetShowDetailsRequest(s, serverUser, cancellationToken).ConfigureAwait(false));
+          }
+        }
       }
     }
     catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Locked)
@@ -186,15 +182,7 @@ public class SyncFromServerTask : IScheduledTask
 
     _logger.LogInformation("Server watched movies for user {User}: {Count}", user.Username, serverWatchedMovies.Count);
     _logger.LogInformation("Server paused movies for user {User}: {Count}", user.Username, serverPausedMovies.Count);
-
-    /*
-        _logger.LogInformation("Server watched shows for user {User}: {Count}", user.Username, serverWatchedShows.Count);
-        _logger.LogInformation("Server watched episodes for user {User}: {Count}", user.Username, serverWatchedEpisodes.Count);
-        _logger.LogInformation("Server paused episodes for user {User}: {Count}", user.Username, serverPausedEpisodes.Count);
-
-        var watchedShowsProgressFetched = false;
-        var watchedShowsProgressAvailable = false;
-    */
+    _logger.LogInformation("Server watched shows for user {User}: {Count}", user.Username, serverWatchedShows.Count);
 
     var includeItemTypes = new List<BaseItemKind>();
     if (movieSyncNeeded)
@@ -347,199 +335,138 @@ public class SyncFromServerTask : IScheduledTask
         progress.Report(currentProgress);
       }
 
-      /*
-            foreach (var episode in mediaItems.OfType<Episode>())
+      foreach (var episode in mediaItems.OfType<Episode>())
+      {
+        cancellationToken.ThrowIfCancellationRequested();
+        var matchedWatchedShow = Extensions.FindMatch(episode.Series, serverWatchedShows);
+        var matchedEpisode = Extensions.FindMatch(episode, matchedWatchedShow);
+        var userData = _userDataManager.GetUserData(user, episode);
+        bool changed = false;
+        bool episodeWatched = false;
+        bool episodeWatchedUnknown = false;
+
+        if (!serverUser.SkipWatchedImportFromServer && matchedWatchedShow != null)
+        {
+          if (matchedEpisode == null && !Extensions.HasAnyProviderTvId(episode))
+          {
+            // Without progress data the episode can't be matched at all, so its
+            // watched state is unknown rather than unwatched
+            episodeWatchedUnknown = true;
+          }
+
+          var matchedWatchedEpisode = Extensions.IsWatched(matchedEpisode) ? matchedEpisode : null;
+          if (matchedWatchedEpisode != null)
+          {
+            DateTime? tLastPlayed = matchedWatchedEpisode.LastWatchedAt;
+
+            _logger.LogDebug("Episode is in watched list of user {User}: {Data}", user.Username, GetVerboseEpisodeData(episode));
+
+            episodeWatched = true;
+
+            // Set episode as watched
+            if (!userData.Played)
             {
-              cancellationToken.ThrowIfCancellationRequested();
-              var matchedWatchedShow = Extensions.FindMatch(episode.Series, serverWatchedShows);
-              var matchedPausedEpisode = Extensions.FindMatch(episode, serverPausedEpisodes);
-              var userData = _userDataManager.GetUserData(user, episode);
-              bool changed = false;
-              bool episodeWatched = false;
-              bool episodeWatchedUnknown = false;
-
-              if (!serverUser.SkipWatchedImportFromServer && matchedWatchedShow != null)
+              // Only change LastPlayedDate if not set or the local and remote are more than 10 minutes apart
+              _logger.LogDebug("Marking episode as watched for user {User} locally: {Data}", user.Username, GetVerboseEpisodeData(episode));
+              if (tLastPlayed == null && userData.LastPlayedDate == null)
               {
-                // Keep track of the shows rewatch cycles
-                DateTime? tLastReset = null;
-                if (DateTimeOffset.TryParse(matchedWatchedShow.ResetAt, out var resetValue))
-                {
-                  tLastReset = resetValue.UtcDateTime;
-                }
-
-                var matchedWatchedEpisode = Extensions.FindMatch(episode, serverWatchedEpisodes);
-
-                // /sync/watched/episodes has no show object, so id-less episodes only
-                // match by season/episode against show progress
-                if (matchedWatchedEpisode == null && !Extensions.HasAnyProviderTvId(episode))
-                {
-                  if (!watchedShowsProgressFetched)
-                  {
-                    watchedShowsProgressFetched = true;
-                    watchedShowsProgressAvailable = await FetchWatchedShowsProgress(serverWatchedShows, serverUser, user, cancellationToken).ConfigureAwait(false);
-                    matchedWatchedShow = Extensions.FindMatch(episode.Series, serverWatchedShows);
-                  }
-
-                  if (watchedShowsProgressAvailable)
-                  {
-                    matchedWatchedEpisode = Extensions.FindMatchFromShowProgress(episode, matchedWatchedShow);
-                  }
-                  else
-                  {
-                    // Without progress data the episode can't be matched at all, so its
-                    // watched state is unknown rather than unwatched
-                    episodeWatchedUnknown = true;
-                  }
-                }
-
-                DateTime? tLastPlayed = null;
-                if (matchedWatchedEpisode != null
-                    && DateTimeOffset.TryParse(matchedWatchedEpisode.LastWatchedAt, out var lastWatchedValue))
-                {
-                  tLastPlayed = lastWatchedValue.UtcDateTime;
-                }
-
-                // Discard the match if the episode is on a rewatch cycle and
-                // the last play date was before the reset date
-                if (matchedWatchedEpisode != null
-                    && tLastReset != null
-                    && tLastPlayed != null
-                    && tLastPlayed < tLastReset)
-                {
-                  matchedWatchedEpisode = null;
-                }
-
-                if (matchedWatchedEpisode != null)
-                {
-                  _logger.LogDebug("Episode is in watched list of user {User}: {Data}", user.Username, GetVerboseEpisodeData(episode));
-
-                  episodeWatched = true;
-
-                  // Set episode as watched
-                  if (!userData.Played)
-                  {
-                    // Only change LastPlayedDate if not set or the local and remote are more than 10 minutes apart
-                    _logger.LogDebug("Marking episode as watched for user {User} locally: {Data}", user.Username, GetVerboseEpisodeData(episode));
-                    if (tLastPlayed == null && userData.LastPlayedDate == null)
-                    {
-                      _logger.LogDebug("Episode's local and remote last played date are missing, falling back to the current time for user {User} locally: {Data}", user.Username, GetVerboseEpisodeData(episode));
-                      userData.LastPlayedDate = DateTime.UtcNow;
-                    }
-
-                    if (tLastPlayed != null
-                        && userData.LastPlayedDate != null
-                        && (tLastPlayed.Value - userData.LastPlayedDate.Value).Duration() > TimeSpan.FromMinutes(10)
-                        && userData.LastPlayedDate < tLastPlayed)
-                    {
-                      _logger.LogDebug("Setting episode's last played date to remote which is more than 10 minutes more recent than local (remote: {Remote} | local: {Local}) for user {User} locally: {Data}", tLastPlayed, userData.LastPlayedDate, user.Username, GetVerboseEpisodeData(episode));
-                      userData.LastPlayedDate = tLastPlayed;
-                    }
-
-                    userData.Played = true;
-                    changed = true;
-                  }
-
-                  // Update last played if remote time is more recent
-                  if (tLastPlayed != null && (userData.LastPlayedDate == null || userData.LastPlayedDate < tLastPlayed))
-                  {
-                    _logger.LogDebug("Adjusting episode's last played date to match a more recent remote last played date (remote: {Remote} | local: {Local}) for user {User} locally: {Name}", tLastPlayed, userData.LastPlayedDate, user.Username, episode.Name);
-                    userData.LastPlayedDate = tLastPlayed;
-                    changed = true;
-                  }
-
-                  // Keep the highest play count
-                  if (userData.PlayCount < matchedWatchedEpisode.Plays)
-                  {
-                    _logger.LogDebug("Adjusting episode's play count to match a higher remote value (remote: {Remote} | local: {Local}) for user {User} locally: {Data}", matchedWatchedEpisode.Plays, userData.PlayCount, user.Username, GetVerboseEpisodeData(episode));
-                    userData.PlayCount = matchedWatchedEpisode.Plays;
-                    changed = true;
-                  }
-                }
-                else
-                {
-                  _logger.LogDebug("No watched episode data found for user {User} for {Data}", user.Username, GetVerboseEpisodeData(episode));
-                }
-              }
-              else
-              {
-                _logger.LogDebug("No show data found for user {User} for {Data}", user.Username, GetVerboseEpisodeData(episode));
+                _logger.LogDebug("Episode's local and remote last played date are missing, falling back to the current time for user {User} locally: {Data}", user.Username, GetVerboseEpisodeData(episode));
+                userData.LastPlayedDate = DateTime.UtcNow;
               }
 
-              if (episodeWatchedUnknown)
+              if (tLastPlayed != null
+                  && userData.LastPlayedDate != null
+                  && (tLastPlayed.Value - userData.LastPlayedDate.Value).Duration() > TimeSpan.FromMinutes(10)
+                  && userData.LastPlayedDate < tLastPlayed)
               {
-                _logger.LogDebug("Keeping local watched state of episode for user {User} because server progress is unavailable: {Data}", user.Username, GetVerboseEpisodeData(episode));
-              }
-              else if (!serverUser.SkipUnwatchedImportFromServer && !episodeWatched)
-              {
-                _logger.LogDebug("Episode not in watched list of user {User}: {Data}", user.Username, GetVerboseEpisodeData(episode));
-                if (userData.Played)
-                {
-                  _logger.LogDebug("Marking episode as unwatched for user {User} locally: {Data}", user.Username, GetVerboseEpisodeData(episode));
-                  userData.Played = false;
-                  changed = true;
-                }
+                _logger.LogDebug("Setting episode's last played date to remote which is more than 10 minutes more recent than local (remote: {Remote} | local: {Local}) for user {User} locally: {Data}", tLastPlayed, userData.LastPlayedDate, user.Username, GetVerboseEpisodeData(episode));
+                userData.LastPlayedDate = tLastPlayed;
               }
 
-              if (!serverUser.SkipPlaybackProgressImportFromServer && matchedPausedEpisode != null)
-              {
-                _logger.LogDebug("Episode is in paused list of user {User}: {Data}", user.Username, GetVerboseEpisodeData(episode));
-
-                var lastPlayed = userData.LastPlayedDate;
-                DateTime? paused = matchedPausedEpisode.PausedAt;
-
-                if (lastPlayed == null || (paused != null && (lastPlayed + TimeSpan.FromSeconds(1)) < paused))
-                {
-                  _logger.LogDebug("Local last played date is missing or remote has more recent paused at date (remote: {Remote} | local: {Local}). Setting playback progress of episode for user {User} locally to {Progress}%: {Data}", paused, lastPlayed, user.Username, matchedPausedEpisode.Progress, GetVerboseEpisodeData(episode));
-
-                  var runtimeTicks = episode.GetRunTimeTicksForPlayState();
-                  var serverPlaybackTicks = runtimeTicks != 0
-                      ? (long)(matchedPausedEpisode.Progress * runtimeTicks)
-                      : 0;
-
-                  userData.PlaybackPositionTicks = serverPlaybackTicks;
-                  changed = true;
-                }
-              }
-
-              // Only process if changed
-              if (changed)
-              {
-                _userDataManager.SaveUserData(
-                    user,
-                    episode,
-                    userData,
-                    UserDataSaveReason.Import,
-                    cancellationToken);
-              }
-
-              // Purely for progress reporting
-              currentProgress += percentPerItem;
-              progress.Report(currentProgress);
+              userData.Played = true;
+              changed = true;
             }
-      */
+
+            // Update last played if remote time is more recent
+            if (tLastPlayed != null && (userData.LastPlayedDate == null || userData.LastPlayedDate < tLastPlayed))
+            {
+              _logger.LogDebug("Adjusting episode's last played date to match a more recent remote last played date (remote: {Remote} | local: {Local}) for user {User} locally: {Name}", tLastPlayed, userData.LastPlayedDate, user.Username, episode.Name);
+              userData.LastPlayedDate = tLastPlayed;
+              changed = true;
+            }
+
+            // Keep the highest play count
+            if (userData.PlayCount < matchedWatchedEpisode.Plays)
+            {
+              _logger.LogDebug("Adjusting episode's play count to match a higher remote value (remote: {Remote} | local: {Local}) for user {User} locally: {Data}", matchedWatchedEpisode.Plays, userData.PlayCount, user.Username, GetVerboseEpisodeData(episode));
+              userData.PlayCount = matchedWatchedEpisode.Plays;
+              changed = true;
+            }
+          }
+          else
+          {
+            _logger.LogDebug("No watched episode data found for user {User} for {Data}", user.Username, GetVerboseEpisodeData(episode));
+          }
+        }
+        else
+        {
+          _logger.LogDebug("No show data found for user {User} for {Data}", user.Username, GetVerboseEpisodeData(episode));
+        }
+
+        if (episodeWatchedUnknown)
+        {
+          _logger.LogDebug("Keeping local watched state of episode for user {User} because server progress is unavailable: {Data}", user.Username, GetVerboseEpisodeData(episode));
+        }
+        else if (!serverUser.SkipUnwatchedImportFromServer && !episodeWatched)
+        {
+          _logger.LogDebug("Episode not in watched list of user {User}: {Data}", user.Username, GetVerboseEpisodeData(episode));
+          if (userData.Played)
+          {
+            _logger.LogDebug("Marking episode as unwatched for user {User} locally: {Data}", user.Username, GetVerboseEpisodeData(episode));
+            userData.Played = false;
+            changed = true;
+          }
+        }
+
+        var matchedPausedEpisode = Extensions.IsPaused(matchedEpisode) ? matchedEpisode : null;
+        if (!serverUser.SkipPlaybackProgressImportFromServer && matchedPausedEpisode != null)
+        {
+          _logger.LogDebug("Episode is in paused list of user {User}: {Data}", user.Username, GetVerboseEpisodeData(episode));
+
+          var lastPlayed = userData.LastPlayedDate;
+          DateTime? paused = matchedPausedEpisode.PausedAt;
+
+          if (lastPlayed == null || (paused != null && (lastPlayed + TimeSpan.FromSeconds(1)) < paused))
+          {
+            _logger.LogDebug("Local last played date is missing or remote has more recent paused at date (remote: {Remote} | local: {Local}). Setting playback progress of episode for user {User} locally to {Progress}%: {Data}", paused, lastPlayed, user.Username, matchedPausedEpisode.Progress, GetVerboseEpisodeData(episode));
+
+            var runtimeTicks = episode.GetRunTimeTicksForPlayState();
+            var serverPlaybackTicks = runtimeTicks != 0
+                ? (long)(matchedPausedEpisode.Progress * runtimeTicks)
+                : 0;
+
+            userData.PlaybackPositionTicks = serverPlaybackTicks;
+            changed = true;
+          }
+        }
+
+        // Only process if changed
+        if (changed)
+        {
+          _userDataManager.SaveUserData(
+              user,
+              episode,
+              userData,
+              UserDataSaveReason.Import,
+              cancellationToken);
+        }
+
+        // Purely for progress reporting
+        currentProgress += percentPerItem;
+        progress.Report(currentProgress);
+      }
     }
     while (previousCount != 0);
-  }
-
-  /// <summary>
-  /// Replaces the watched shows with the extended=progress variant so episodes without provider ids can be matched.
-  /// </summary>
-  /// <returns>True if the progress data was fetched, false if the request failed.</returns>
-  private async Task<bool> FetchWatchedShowsProgress(List<ServerShowWatched> serverWatchedShows, ServerUser serverUser, User user, CancellationToken cancellationToken)
-  {
-    try
-    {
-      var watchedShowsProgress = await _serverApi.SendGetWatchedShowsProgressRequest(serverUser, cancellationToken).ConfigureAwait(false);
-      serverWatchedShows.Clear();
-      serverWatchedShows.AddRange(watchedShowsProgress);
-      _logger.LogInformation("Server watched shows progress for user {User}: {Count}", user.Username, watchedShowsProgress.Count);
-      return true;
-    }
-    catch (Exception ex) when (ex is not OperationCanceledException)
-    {
-      _logger.LogWarning(ex, "Failed to fetch watched shows progress for user {User} - episodes without provider ids will keep their local watched state", user.Username);
-      return false;
-    }
   }
 
   private static string GetVerboseEpisodeData(Episode episode)

@@ -389,15 +389,56 @@ public class ServerApi
   }
 
   /// <summary>
-  /// Get watched shows including per-episode progress.
+  /// Get all watched shows.
   /// </summary>
   /// <param name="serverUser">The <see cref="ServerUser"/>.</param>
   /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-  /// <returns>Task{List{DataContracts.Users.Watched.ServerShowWatched}}.</returns>
-  public async Task<List<DataContracts.Users.Watched.ServerShowWatched>> SendGetWatchedShowsProgressRequest(ServerUser serverUser, CancellationToken cancellationToken)
+  /// <returns>Task{List{ServerShow}}.</returns>
+  public async Task<List<ServerShow>> SendGetWatchedShowsRequest(ServerUser serverUser, CancellationToken cancellationToken)
   {
-    // TODO: implement (needed for importing state from server)
-    return [];
+    const string apiPath = "/api/items/paginated?token={apiToken}&mediaType=tv&onlySeenItems=true&page={page}";
+    return await GetFromServerWithPaging<ServerShow>(apiPath, serverUser, cancellationToken).ConfigureAwait(false);
+  }
+
+  /// <summary>
+  /// Get the show details, including seasons, episodes and playstate/progress.
+  /// </summary>
+  /// <param name="show">The <see cref="ServerShow"/>.</param>
+  /// <param name="serverUser">The <see cref="ServerUser"/>.</param>
+  /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+  /// <returns>Task{ServerShow}.</returns>
+  internal async Task<ServerShow> SendGetShowDetailsRequest(ServerShow show, ServerUser serverUser, CancellationToken cancellationToken)
+  {
+    string apiPath = $"/api/details/{show.Id}?token={{apiToken}}";
+    return await GetFromServer<ServerShow>(apiPath, serverUser, cancellationToken).ConfigureAwait(false);
+  }
+
+  private async Task<T> GetFromServer<T>(string apiPath, ServerUser serverUser, CancellationToken cancellationToken)
+  {
+    ArgumentNullException.ThrowIfNull(serverUser);
+
+    var apiPathUpdated = apiPath.Replace("{apiToken}", serverUser.ApiToken.ToString(CultureInfo.InvariantCulture), StringComparison.InvariantCulture);
+    var uri = new Uri(new Uri(serverUser.ApiServerUrl), apiPathUpdated);
+
+    var httpClient = GetHttpClient();
+
+    await _serverResourcePool.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+    try
+    {
+      var response = await RetryHttpRequest(async () => await httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false), cancellationToken, retryServerError: true).ConfigureAwait(false);
+      if (response.StatusCode == HttpStatusCode.NotFound)
+      {
+        return default;
+      }
+
+      response.EnsureSuccessStatusCode();
+      return await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken).ConfigureAwait(false);
+    }
+    finally
+    {
+      _serverResourcePool.Release();
+    }
   }
 
   private async Task<List<T>> GetFromServerWithPaging<T>(string apiPath, ServerUser serverUser, CancellationToken cancellationToken)
