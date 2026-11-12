@@ -12,6 +12,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Extensions.Json;
+using Jellyfin.Plugin.MediaTracker.Api.DataContracts.BaseModel;
 using Jellyfin.Plugin.MediaTracker.Model;
 using Jellyfin.Plugin.MediaTracker.Model.Enums;
 using MediaBrowser.Common.Net;
@@ -31,6 +32,9 @@ namespace Jellyfin.Plugin.MediaTracker.Api;
 /// </summary>
 public class ServerApi
 {
+  // mediatracker server caps page size at 40, so we need quite a few pages to get all items. 5000 is a safe upper limit.
+  private const int MaxPages = 5000;
+
   private const int MaxRetryAttempts = 3;
 
   private static readonly SemaphoreSlim _serverResourcePool = new SemaphoreSlim(1, 1);
@@ -112,6 +116,8 @@ public class ServerApi
   /// <returns>Task{bool}.</returns>
   public async Task<bool> SendMovieStatusUpdateAsync(Movie movie, MediaStatus mediaStatus, ServerUser serverUser, float progressPercent, string deviceName)
   {
+    const string apiPath = "/api/progress/by-external-id?token={apiToken}";
+
     var imdbId = TryParseInt64(movie.GetProviderId(MetadataProvider.Imdb));
     var tmdbId = TryParseInt64(movie.GetProviderId(MetadataProvider.Tmdb));
 
@@ -135,6 +141,8 @@ public class ServerApi
     var progress = progressPercent / 100f;
     var durationInMs = movie.RunTimeTicks.HasValue ? TimeSpan.FromTicks(movie.RunTimeTicks.Value).TotalMilliseconds : 0.0;
 
+    _logger.LogInformation("Updating progress for movie '{0}' - {1:0.00}% - {2}", movie.Name, progressPercent, action);
+
     var data = new
     {
       mediaType = "movie",
@@ -149,7 +157,7 @@ public class ServerApi
       device = deviceName,
     };
 
-    return await PutToServer<bool>("/api/progress/by-external-id", data, serverUser, CancellationToken.None).ConfigureAwait(false);
+    return await PutToServer<bool>(apiPath, data, serverUser, CancellationToken.None).ConfigureAwait(false);
   }
 
   /// <summary>
@@ -163,6 +171,8 @@ public class ServerApi
   /// <returns>Task{bool}.</returns>
   public async Task<bool> SendEpisodeStatusUpdateAsync(Episode episode, MediaStatus mediaStatus, ServerUser serverUser, float progressPercent, string deviceName)
   {
+    const string apiPath = "/api/progress/by-external-id?token={apiToken}";
+
     if (episode == null || episode.Series == null)
     {
       _logger.LogError("Episode or series is null");
@@ -195,6 +205,8 @@ public class ServerApi
 
     var progress = progressPercent / 100f;
 
+    _logger.LogInformation("Updating progress for episode of '{0}' S{1:00}E{2:00} - {3:0.00}% - {4}", episode.SeriesName, seasonNumber, episodeNumber, progressPercent, action);
+
     var data = new
     {
       mediaType = "tv",
@@ -211,7 +223,7 @@ public class ServerApi
       device = deviceName,
     };
 
-    return await PutToServer<bool>("/api/progress/by-external-id", data, serverUser, CancellationToken.None).ConfigureAwait(false);
+    return await PutToServer<bool>(apiPath, data, serverUser, CancellationToken.None).ConfigureAwait(false);
   }
 
   /// <summary>
@@ -280,6 +292,8 @@ public class ServerApi
 
   private async Task<bool> SendMoviePlaystateUpdate(Movie movie, bool seen, ServerUser serverUser, CancellationToken cancellationToken)
   {
+    const string apiPath = "/api/seen/by-external-id?token={apiToken}";
+
     var imdbId = TryParseInt64(movie.GetProviderId(MetadataProvider.Imdb));
     var tmdbId = TryParseInt64(movie.GetProviderId(MetadataProvider.Tmdb));
 
@@ -290,6 +304,8 @@ public class ServerApi
     }
 
     var duration = movie.RunTimeTicks.HasValue ? TimeSpan.FromTicks(movie.RunTimeTicks.Value).TotalMilliseconds : 0.0;
+
+    _logger.LogInformation("Updating seen state for movie '{0}' - {1}", movie.Name, seen ? "seen" : "unseen");
 
     var data = new
     {
@@ -303,11 +319,13 @@ public class ServerApi
       unset = !seen ? true : (bool?)null
     };
 
-    return await PutToServer<bool>("/api/seen/by-external-id", data, serverUser, cancellationToken).ConfigureAwait(false);
+    return await PutToServer<bool>(apiPath, data, serverUser, cancellationToken).ConfigureAwait(false);
   }
 
   private async Task<bool> SendEpisodePlaystateUpdate(Episode episode, bool seen, ServerUser serverUser, CancellationToken cancellationToken)
   {
+    const string apiPath = "/api/seen/by-external-id?token={apiToken}";
+
     if (episode.Series == null)
     {
       _logger.LogError("Episode {Episode} has no series", episode.Name);
@@ -327,6 +345,8 @@ public class ServerApi
     var episodeNumber = episode.IndexNumber;
     var duration = episode.RunTimeTicks.HasValue ? TimeSpan.FromTicks(episode.RunTimeTicks.Value).TotalMilliseconds : 0.0;
 
+    _logger.LogInformation("Updating seen state for episode of '{0}' S{1:00}E{2:00} - {3}", episode.SeriesName, seasonNumber, episodeNumber, seen ? "seen" : "unseen");
+
     var data = new
     {
       mediaType = "tv",
@@ -341,7 +361,31 @@ public class ServerApi
       unset = !seen ? true : (bool?)null
     };
 
-    return await PutToServer<bool>("/api/seen/by-external-id", data, serverUser, cancellationToken).ConfigureAwait(false);
+    return await PutToServer<bool>(apiPath, data, serverUser, cancellationToken).ConfigureAwait(false);
+  }
+
+  /// <summary>
+  /// Get all watched movies.
+  /// </summary>
+  /// <param name="serverUser">The <see cref="ServerUser"/>.</param>
+  /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+  /// <returns>Task{List{DataContracts.Users.Watched.ServerMovieWatched}}.</returns>
+  public async Task<List<DataContracts.Users.Watched.ServerMovieWatched>> SendGetAllWatchedMoviesRequest(ServerUser serverUser, CancellationToken cancellationToken)
+  {
+    const string apiPath = "/api/items/paginated?token={apiToken}&mediaType=movie&onlySeenItems=true&page={page}";
+    return await GetFromServerWithPaging<DataContracts.Users.Watched.ServerMovieWatched>(apiPath, serverUser, cancellationToken).ConfigureAwait(false);
+  }
+
+  /// <summary>
+  /// Get all paused movies.
+  /// </summary>
+  /// <param name="serverUser">The <see cref="ServerUser"/>.</param>
+  /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+  /// <returns>Task{List{DataContracts.Users.Playback.ServerMoviePaused}}.</returns>
+  public async Task<List<DataContracts.Users.Playback.ServerMoviePaused>> SendGetAllPausedMoviesRequest(ServerUser serverUser, CancellationToken cancellationToken)
+  {
+    const string apiPath = "/api/items/paginated?token={apiToken}&mediaType=movie&onlyWithProgress=true&page={page}";
+    return await GetFromServerWithPaging<DataContracts.Users.Playback.ServerMoviePaused>(apiPath, serverUser, cancellationToken).ConfigureAwait(false);
   }
 
   /// <summary>
@@ -356,6 +400,67 @@ public class ServerApi
     return [];
   }
 
+  private async Task<List<T>> GetFromServerWithPaging<T>(string apiPath, ServerUser serverUser, CancellationToken cancellationToken)
+  {
+    ArgumentNullException.ThrowIfNull(serverUser);
+
+    var apiPathUpdated = apiPath.Replace("{apiToken}", serverUser.ApiToken.ToString(CultureInfo.InvariantCulture), StringComparison.InvariantCulture);
+    var uri = new Uri(new Uri(serverUser.ApiServerUrl), apiPathUpdated);
+
+    var httpClient = GetHttpClient();
+    var page = 1;
+    var result = new List<T>();
+
+    while (page <= MaxPages)
+    {
+      var urlWithPage = uri.ToString()
+          .Replace("{page}", page.ToString(CultureInfo.InvariantCulture), StringComparison.InvariantCulture);
+
+      ServerPagedData<T> pageResult;
+      int pageCount;
+
+      await _serverResourcePool.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+      try
+      {
+        var response = await RetryHttpRequest(async () => await httpClient.GetAsync(urlWithPage, cancellationToken).ConfigureAwait(false), cancellationToken, retryServerError: true).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+          return result;
+        }
+
+        response.EnsureSuccessStatusCode();
+        pageResult = await response.Content.ReadFromJsonAsync<ServerPagedData<T>>(_jsonOptions, cancellationToken).ConfigureAwait(false);
+        pageCount = pageResult.TotalPages;
+      }
+      finally
+      {
+        _serverResourcePool.Release();
+      }
+
+      if (pageResult == null || pageResult.Data.Count == 0)
+      {
+        break;
+      }
+
+      result.AddRange(pageResult.Data);
+
+      if (pageCount == 0 || page >= pageCount)
+      {
+        break;
+      }
+
+      page++;
+    }
+
+    if (page > MaxPages)
+    {
+      _logger.LogWarning("Stopped requesting pages from the server after the maximum of {MaxPages} pages", MaxPages);
+    }
+
+    return result;
+  }
+
   /// <summary>
   /// Puts data to server API path, authenticating with <see cref="ServerUser"/>.
   /// </summary>
@@ -367,7 +472,8 @@ public class ServerApi
   {
     ArgumentNullException.ThrowIfNull(serverUser);
 
-    var uri = new Uri(new Uri(serverUser.ApiServerUrl), apiPath + "?token=" + serverUser.ApiToken);
+    var apiPathUpdated = apiPath.Replace("{apiToken}", serverUser.ApiToken.ToString(CultureInfo.InvariantCulture), StringComparison.InvariantCulture);
+    var uri = new Uri(new Uri(serverUser.ApiServerUrl), apiPathUpdated);
     if (serverUser.ExtraLogging)
     {
       _logger.LogInformation("Put to {Url}: {@JsonData}", uri, data);

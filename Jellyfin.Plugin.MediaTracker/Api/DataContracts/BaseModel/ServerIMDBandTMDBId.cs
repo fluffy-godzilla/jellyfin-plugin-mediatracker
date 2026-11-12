@@ -12,12 +12,12 @@ public class ServerIMDBandTMDBId : ServerId
   /// <summary>
   /// Gets or sets the IMDb id.
   /// </summary>
-  [JsonPropertyName("imdb")]
+  [JsonPropertyName("imdbId")]
   public string? Imdb { get; set; }
 
   /// <summary>
   /// Gets or sets the TMDb id.
   /// </summary>
-  [JsonPropertyName("tmdb")]
+  [JsonPropertyName("tmdbId")]
   public int? Tmdb { get; set; }
 }

@@ -10,12 +10,6 @@ public class ServerId
   /// <summary>
   /// Gets or sets the server item id.
   /// </summary>
-  [JsonPropertyName("server")]
-  public int? Server { get; set; }
-
-  /// <summary>
-  /// Gets or sets the item slug.
-  /// </summary>
-  [JsonPropertyName("slug")]
-  public string Slug { get; set; }
+  [JsonPropertyName("id")]
+  public int Server { get; set; }
 }
