@@ -8,6 +8,14 @@
         "category": "General",
         "versions": [
             {
+                "version": "2.1.0.1",
+                "changelog": "- \"Added support for importing movie scrobbles from MediaTracker.\"",
+                "targetAbi": "12.1.0.0",
+                "sourceUrl": "https://github.com/fluffy-godzilla/jellyfin-plugin-mediatracker/releases/download/v2.1.0.1/mediatracker_2.1.0.1.zip",
+                "checksum": "0b67125b74b237c2ac71ff38dbf85979",
+                "timestamp": "2026-11-12T02:30:10Z"
+            },
+            {
                 "version": "2.1.0.0",
                 "changelog": "- \"Refactored the scrobbler code, started adding support for importing scrobbles from MediaTracker.\"",
                 "targetAbi": "12.1.0.0",
